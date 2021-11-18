@@ -87,7 +87,7 @@ public class ComputeProgram {
         }
     }
 
-    public int GlobalSize = 4;
+    public int GlobalSize = 1;
     public int LocalSize = Integer.MIN_VALUE;
     public int Dimensions = 1;
 
@@ -175,10 +175,11 @@ public class ComputeProgram {
         }
 
         PointerBuffer GlobalWorksizeBuffer = GPU.Stack.callocPointer(2);
-        GlobalWorksizeBuffer.put(0, 64);
+        GlobalWorksizeBuffer.put(0, 3);
+        GlobalWorksizeBuffer.put(1, 3);
 
         PointerBuffer LocalWorksizeBuffer = GPU.Stack.callocPointer(1);
-        LocalWorksizeBuffer.put(0, 8);
+        LocalWorksizeBuffer.put(0, LocalSize);
 
         PointerBuffer KernelEvent = GPU.Stack.callocPointer(1);
 
@@ -188,7 +189,7 @@ public class ComputeProgram {
                 Dimensions,
                 null,
                 GlobalWorksizeBuffer,
-                LocalWorksizeBuffer,
+                null /*LocalWorksizeBuffer*/,
                 null,
                 KernelEvent
         );

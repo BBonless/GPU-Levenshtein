@@ -1,3 +1,4 @@
+import Compute.ComputeProgram;
 import Compute.GPU;
 
 import java.io.BufferedReader;
@@ -63,10 +64,82 @@ public class Main {
 
         GPU.Init();
 
+        {
+            int[][] Data = {
+                    {1, 1, 1},
+                    {2, 2, 2},
+                    {3, 3, 3}
+            };
+
+            IntBuffer DataBuffer = GPU.Stack.callocInt(3 * 3);
+            for (int i = 0; i < Data.length; i++) {
+                for (int j = 0; j < Data[i].length; j++) {
+                    DataBuffer.put(Data[i][j]);
+                }
+            }
+            DataBuffer.position(0);
+
+
+            IntBuffer OutBuffer = GPU.Stack.callocInt(9);
+            for (int i = 0; i < 9; i++) {
+                OutBuffer.put(i, 0);
+            }
+
+            GPU.AddProgram(
+                    "Test2D",
+                    Main.class.getClassLoader().getResourceAsStream("Test2D.cl")
+            );
+            ComputeProgram PGR = GPU.Programs.get("Test2D");
+
+            PGR.CreateIntBuffer(0, DataBuffer, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+            PGR.WriteIntBuffer(0, DataBuffer);
+            PGR.CreateIntBuffer(1, OutBuffer, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+
+            PGR.Dimensions = 2;
+            PGR.AutoSetKernelArgs();
+            PGR.AutoEnqueue(
+                    new int[] {1},
+                    OutBuffer
+            );
+
+            int[] Input = Util.IntBuffer2Array(DataBuffer);
+            int[] Result = Util.IntBuffer2Array(OutBuffer);
+
+            for (int i = 0; i < Input.length; i++) {
+                if (i % 3 == 0 && i != 0) {
+                    System.out.println();
+                }
+                System.out.print(Input[i]);
+                System.out.print(' ');
+            }
+            System.out.println();
+            System.out.println();
+
+            for (int i = 0; i < Result.length; i++) {
+                if (i % 3 == 0 && i != 0) {
+                    System.out.println();
+                }
+                System.out.print(Result[i]);
+                System.out.print(' ');
+            }
+            System.out.println();
+            System.out.println();
+
+        }
+
+        GPU.Dispose();
+
+        MainLevLoop();
+    }
+
+    private static void Test1() {
         GPU.AddProgram(
                 "Test",
                 Main.class.getClassLoader().getResourceAsStream("Test.cl")
         );
+
+        GPU.Programs.get("Test").GlobalSize = 64;
+        GPU.Programs.get("Test").LocalSize = 8;
 
         IntBuffer Buffer = GPU.Stack.callocInt(64);
         for (int i = 0; i < 64; i++) {
@@ -80,7 +153,6 @@ public class Main {
 
         GPU.Programs.get("Test").AutoSetKernelArgs();
         GPU.Programs.get("Test").Dimensions = 1;
-        GPU.Programs.get("Test").GlobalSize = 1;
         GPU.Programs.get("Test").AutoEnqueue(
                 new int[] {1},
                 Output
@@ -93,9 +165,5 @@ public class Main {
             System.out.print(' ');
         }
         System.out.println();
-
-        GPU.Dispose();
-
-        MainLevLoop();
     }
 }
