@@ -87,9 +87,11 @@ public class ComputeProgram {
         }
     }
 
-    public int GlobalSize = 1;
+    public int GlobalSize = 10000;
     public int LocalSize = Integer.MIN_VALUE;
     public int Dimensions = 1;
+
+    public int x=0,y=0;
 
     public HashMap<Integer,Long> MemoryObjects = new HashMap<Integer,Long>();
 
@@ -116,6 +118,11 @@ public class ComputeProgram {
     public void CreateWriteFloatBuffer(int ArgumentIndex, FloatBuffer InitialData, int Flags) {
         CreateFloatBuffer(ArgumentIndex, InitialData, Flags);
         WriteFloatBuffer(ArgumentIndex, InitialData);
+    }
+
+    public void CreateWriteIntBuffer(int ArgumentIndex, IntBuffer InitialData, int Flags) {
+        CreateIntBuffer(ArgumentIndex, InitialData, Flags);
+        WriteIntBuffer(ArgumentIndex, InitialData);
     }
 
     public void AutoSetKernelArgs() {
@@ -175,8 +182,8 @@ public class ComputeProgram {
         }
 
         PointerBuffer GlobalWorksizeBuffer = GPU.Stack.callocPointer(2);
-        GlobalWorksizeBuffer.put(0, 3);
-        GlobalWorksizeBuffer.put(1, 3);
+        GlobalWorksizeBuffer.put(0, x);
+        GlobalWorksizeBuffer.put(1, y);
 
         PointerBuffer LocalWorksizeBuffer = GPU.Stack.callocPointer(1);
         LocalWorksizeBuffer.put(0, LocalSize);
