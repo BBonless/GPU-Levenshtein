@@ -1,5 +1,6 @@
 import Compute.ComputeProgram;
 import Compute.GPU;
+import com.sun.source.tree.Tree;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,8 +13,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import static java.lang.Math.*;
-import static org.lwjgl.opencl.CL10.CL_MEM_COPY_HOST_PTR;
-import static org.lwjgl.opencl.CL10.CL_MEM_READ_ONLY;
+import static org.lwjgl.opencl.CL10.*;
 
 public class Main {
 
@@ -41,6 +41,8 @@ public class Main {
                     new LevenshteinData("#", 7.5f)
             );
 
+            Levenshtein.CalculateTreeless("the", "penis");
+
             System.out.println("Enter Search String: ");
             String SearchString = "#" + Input.nextLine().toLowerCase();
 
@@ -66,16 +68,15 @@ public class Main {
         GPU.Init();
 
         {
-            IntBuffer SearchBuffer = GPU.Stack.callocInt(("Penis").length());
-            SearchBuffer.put('p');
-            SearchBuffer.put('e');
-            SearchBuffer.put('n');
-            SearchBuffer.put('i');
-            SearchBuffer.put('s');
+            String Cum = "penis";
+            IntBuffer SearchBuffer = GPU.Stack.callocInt((Cum).length());
+            for (char C : Cum.toCharArray()) {
+                SearchBuffer.put(C);
+            }
             SearchBuffer.position(0);
 
             IntBuffer SearchWordLenBuffer = GPU.Stack.callocInt(1);
-            SearchWordLenBuffer.put(0, 5);
+            SearchWordLenBuffer.put(0, Cum.length());
 
             int LongestWordLength = 0;
             for (String Word : WordList) {
@@ -83,6 +84,11 @@ public class Main {
                     LongestWordLength = Word.length();
                 }
             }
+
+            IntBuffer DistanceMatricesBuffer = GPU.Stack.callocInt(
+                    (LongestWordLength+1) * (LongestWordLength+1) //Matrix Dimensions
+                    * WordList.length //Multiplied by the number of words that will need a matrix
+            );
 
             IntBuffer BaseBuffer = GPU.Stack.callocInt(LongestWordLength * WordList.length);
             for (int i = 0; i < WordList.length; i++) {
@@ -96,6 +102,9 @@ public class Main {
                 }
             }
             BaseBuffer.position(0);
+
+            IntBuffer BaseSizeBuffer = GPU.Stack.callocInt(1);
+            BaseSizeBuffer.put(0, WordList.length);
 
             IntBuffer LongestWordLenBuffer = GPU.Stack.callocInt(1);
             LongestWordLenBuffer.put(0, LongestWordLength);
@@ -112,20 +121,42 @@ public class Main {
             PGR.CreateWriteIntBuffer(0, SearchBuffer, F);
             PGR.CreateWriteIntBuffer(1, SearchWordLenBuffer, F);
             PGR.CreateWriteIntBuffer(2, BaseBuffer, F);
-            PGR.CreateWriteIntBuffer(3, LongestWordLenBuffer, F);
-            PGR.CreateIntBuffer(4, OutBuffer, F);
+            PGR.CreateWriteIntBuffer(3, BaseSizeBuffer, F);
+            PGR.CreateWriteIntBuffer(4, LongestWordLenBuffer, F);
+            PGR.CreateIntBuffer(5, DistanceMatricesBuffer, F);
+            PGR.CreateIntBuffer(6, OutBuffer, F);
 
             PGR.Dimensions = 2;
             PGR.x = LongestWordLength;
             PGR.y = WordList.length;
             PGR.AutoSetKernelArgs();
             PGR.AutoEnqueue(
-                    new int[] {4},
-                    OutBuffer
+                    new int[] {5,6},
+                    DistanceMatricesBuffer, OutBuffer
             );
 
             //int[] Input = Util.IntBuffer2Array(BaseBuffer);
             int[] Result = Util.IntBuffer2Array(OutBuffer);
+            int[] DM = Util.IntBuffer2Array(DistanceMatricesBuffer);
+
+            for (int i = 0; i < 10; i++) {
+                for (int x = 0; x < LongestWordLength+1; x++) {
+                    for (int y = 0; y < LongestWordLength+1; y++) {
+                        int n = DM[C3D(x,LongestWordLength+1,y,i,LongestWordLength+1)];
+                        if (n < 10 && n >= 0) {
+                            System.out.print('0');
+                            System.out.print(n);
+                        }
+                        else {
+                            System.out.print(n);
+                        }
+                        System.out.print(' ');
+                    }
+                    System.out.println();
+                }
+                System.out.println();
+            }
+
 
             /*for (int i = 0; i < Input.length; i++) {
                 if (i % LongestWordLength == 0 && i != 0) {
@@ -151,41 +182,18 @@ public class Main {
 
         GPU.Dispose();
 
-        MainLevLoop();
+        for(;;) {
+            System.out.println("Enter Search String: ");
+            String SearchString = "#" + Input.nextLine().toLowerCase();
+            System.out.println("Enter Base String: ");
+            String BaseString = "#" + Input.nextLine().toLowerCase();
+            Levenshtein.CalculateTreeless(SearchString, BaseString);
+        }
+        //MainLevLoop();
     }
 
-    private static void Test1() {
-        GPU.AddProgram(
-                "Test",
-                Main.class.getClassLoader().getResourceAsStream("Test.cl")
-        );
-
-        GPU.Programs.get("Test").GlobalSize = 64;
-        GPU.Programs.get("Test").LocalSize = 8;
-
-        IntBuffer Buffer = GPU.Stack.callocInt(64);
-        for (int i = 0; i < 64; i++) {
-            Buffer.put(i, i);
-        }
-        IntBuffer Output = GPU.Stack.callocInt(64);
-
-        GPU.Programs.get("Test").CreateIntBuffer(0, Buffer, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-        GPU.Programs.get("Test").WriteIntBuffer(0, Buffer);
-        GPU.Programs.get("Test").CreateIntBuffer(1, Output, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-
-        GPU.Programs.get("Test").AutoSetKernelArgs();
-        GPU.Programs.get("Test").Dimensions = 1;
-        GPU.Programs.get("Test").AutoEnqueue(
-                new int[] {1},
-                Output
-        );
-
-        int[] Result = Util.IntBuffer2Array(Output);
-
-        for (int i = 0; i < Result.length; i++) {
-            System.out.print(Result[i]);
-            System.out.print(' ');
-        }
-        System.out.println();
+    static int C3D(int X, int XS, int Y, int Z, int ZS) {
+        return X + XS * (Y + ZS * Z);
     }
+
 }
