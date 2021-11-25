@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -68,7 +69,7 @@ public class Main {
         GPU.Init();
 
         {
-            String Cum = "penis";
+            String Cum = "clover";
             IntBuffer SearchBuffer = GPU.Stack.callocInt((Cum).length());
             for (char C : Cum.toCharArray()) {
                 SearchBuffer.put(C);
@@ -109,7 +110,7 @@ public class Main {
             IntBuffer LongestWordLenBuffer = GPU.Stack.callocInt(1);
             LongestWordLenBuffer.put(0, LongestWordLength);
 
-            IntBuffer OutBuffer = GPU.Stack.callocInt(WordList.length);
+            FloatBuffer OutBuffer = GPU.Stack.callocFloat(WordList.length);
 
             GPU.AddProgram(
                     "Test2D",
@@ -124,20 +125,17 @@ public class Main {
             PGR.CreateWriteIntBuffer(3, BaseSizeBuffer, F);
             PGR.CreateWriteIntBuffer(4, LongestWordLenBuffer, F);
             PGR.CreateIntBuffer(5, DistanceMatricesBuffer, F);
-            PGR.CreateIntBuffer(6, OutBuffer, F);
+            PGR.CreateFloatBuffer(6, OutBuffer, F);
 
-            PGR.Dimensions = 2;
-            PGR.x = LongestWordLength;
-            PGR.y = WordList.length;
+            PGR.Dimensions = 1;
+            PGR.GlobalSize = WordList.length;
             PGR.AutoSetKernelArgs();
-            PGR.AutoEnqueue(
-                    new int[] {5,6},
-                    DistanceMatricesBuffer, OutBuffer
-            );
+            PGR.AutoEnqueue1D();
+            PGR.ReadFloatBuffer(6, OutBuffer);
 
             //int[] Input = Util.IntBuffer2Array(BaseBuffer);
-            int[] Result = Util.IntBuffer2Array(OutBuffer);
-            int[] DM = Util.IntBuffer2Array(DistanceMatricesBuffer);
+            float[] Result = Util.FloatBuffer2Array(OutBuffer);
+            /*int[] DM = Util.IntBuffer2Array(DistanceMatricesBuffer);
 
             for (int i = 0; i < 10; i++) {
                 for (int x = 0; x < LongestWordLength+1; x++) {
@@ -155,7 +153,7 @@ public class Main {
                     System.out.println();
                 }
                 System.out.println();
-            }
+            }*/
 
 
             /*for (int i = 0; i < Input.length; i++) {
@@ -172,7 +170,7 @@ public class Main {
                 if (i % 99999 == 0 && i != 0) {
                     System.out.println();
                 }
-                System.out.print(Result[i]);
+                System.out.printf("%.2f", Result[i]);
                 System.out.print(' ');
             }
             System.out.println();
