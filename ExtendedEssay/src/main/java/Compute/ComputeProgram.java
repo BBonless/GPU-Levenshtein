@@ -1,6 +1,7 @@
 package Compute;
 
 import java.io.*;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.charset.StandardCharsets;
@@ -87,11 +88,9 @@ public class ComputeProgram {
         }
     }
 
-    public int GlobalSize = 10000;
+    public int GlobalSize = 1;
     public int LocalSize = Integer.MIN_VALUE;
     public int Dimensions = 1;
-
-    public int x=0,y=0;
 
     public HashMap<Integer,Long> MemoryObjects = new HashMap<Integer,Long>();
 
@@ -132,12 +131,7 @@ public class ComputeProgram {
         });
     }
 
-    public void AutoEnqueue(int[] OutputArguementIndices, FloatBuffer... OutputBuffers) {
-        if (OutputArguementIndices.length != OutputBuffers.length) {
-            System.err.println("List of Argument Indices does not match amount of Buffers provided!!");
-            return;
-        }
-
+    public void AutoEnqueue1D() {
         PointerBuffer GlobalWorksizeBuffer = GPU.Stack.callocPointer(1);
         GlobalWorksizeBuffer.put(0, GlobalSize);
 
@@ -156,62 +150,31 @@ public class ComputeProgram {
                 null,
                 KernelEvent
         );
+
         clWaitForEvents(KernelEvent);
-
-        for (int i = 0; i < OutputArguementIndices.length; i++) {
-            clEnqueueReadBuffer(
-                    CommandQueue,
-                    MemoryObjects.get(OutputArguementIndices[i]),
-                    true,
-                    0,
-                    OutputBuffers[i],
-                    null,
-                    null
-            );
-        }
-
-        clFinish(CommandQueue);
-
-        System.out.println("Kernel Finished Executing");
     }
 
-    public void AutoEnqueue(int[] OutputArguementIndices, IntBuffer... OutputBuffers) {
-        if (OutputArguementIndices.length != OutputBuffers.length) {
-            System.err.println("List of Argument Indices does not match amount of Buffers provided!!");
-            return;
-        }
-
-        PointerBuffer GlobalWorksizeBuffer = GPU.Stack.callocPointer(2);
-        GlobalWorksizeBuffer.put(0, x);
-        GlobalWorksizeBuffer.put(1, y);
-
-        PointerBuffer LocalWorksizeBuffer = GPU.Stack.callocPointer(1);
-        LocalWorksizeBuffer.put(0, LocalSize);
-
-        PointerBuffer KernelEvent = GPU.Stack.callocPointer(1);
-
-        clEnqueueNDRangeKernel(
+    public void ReadIntBuffer(int OutputArgumentIndex, IntBuffer Buffer) {
+        clEnqueueReadBuffer(
                 CommandQueue,
-                Kernel,
-                Dimensions,
+                MemoryObjects.get(OutputArgumentIndex),
+                true,
+                0,
+                Buffer,
                 null,
-                GlobalWorksizeBuffer,
-                null /*LocalWorksizeBuffer*/,
-                null,
-                KernelEvent
+                null
         );
-        clWaitForEvents(KernelEvent);
+    }
 
-        for (int i = 0; i < OutputArguementIndices.length; i++) {
-            clEnqueueReadBuffer(
-                    CommandQueue,
-                    MemoryObjects.get(OutputArguementIndices[i]),
-                    true,
-                    0,
-                    OutputBuffers[i],
-                    null,
-                    null
-            );
-        }
+    public void ReadFloatBuffer(int OutputArgumentIndex, FloatBuffer Buffer) {
+        clEnqueueReadBuffer(
+                CommandQueue,
+                MemoryObjects.get(OutputArgumentIndex),
+                true,
+                0,
+                Buffer,
+                null,
+                null
+        );
     }
 }
