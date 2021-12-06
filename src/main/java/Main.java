@@ -27,9 +27,12 @@ public class Main {
     static boolean QueryGPU = true;
     static boolean QueryCPU = true;
     static boolean PrintGPU = false;
-    static boolean PrintCPU = true;
+    static boolean PrintCPU = false;
     static boolean HeadrGPU = false;
     static boolean HeadrCPU = false;
+    static boolean TimesGPU = false;
+    static boolean TimesCPU = false;
+    static boolean Manual = false;
 
     private static String[] LoadWordList(String List) {
         long FunctionStartTimer = System.nanoTime();
@@ -94,7 +97,7 @@ public class Main {
         }
 
         long FunctionTimeTaken1 = System.nanoTime() - FunctionStartTimer;
-        System.out.printf("%nCPU Query: %dns / %dms %n%n", FunctionTimeTaken1, FunctionTimeTaken1 / 1000000);
+        if (TimesCPU) System.out.printf("%nCPU Query: %dns / %dms %n%n", FunctionTimeTaken1, FunctionTimeTaken1 / 1000000);
         if (PrintCPU) {
             LevenshteinTree.PrintInorder(LevenshteinTree, new int[] {0, 5});
         }
@@ -136,13 +139,13 @@ public class Main {
         SolverProgram.GlobalSize = WordList.length;
 
         long FunctionTimeTaken1 = System.nanoTime() - FunctionStartTimer;
-        System.out.printf("%nGPU Query (Preprocessing): %dns / %dms %n", FunctionTimeTaken1, FunctionTimeTaken1 / 1000000);
+        if (TimesGPU) System.out.printf("%nGPU Query (Preprocessing): %dns / %dms %n", FunctionTimeTaken1, FunctionTimeTaken1 / 1000000);
 
         SolverProgram.AutoSetKernelArgs();
         SolverProgram.AutoEnqueue1D();
         SolverProgram.ReadFloatBuffer(6, OutBuffer);
         long FunctionTimeTaken2 = System.nanoTime() - FunctionStartTimer;
-        System.out.printf("GPU Query (Processing): %dns / %dms %n", FunctionTimeTaken2 - FunctionTimeTaken1, (FunctionTimeTaken2 - FunctionTimeTaken1) / 1000000);
+        if (TimesGPU) System.out.printf("GPU Query (Processing): %dns / %dms %n", FunctionTimeTaken2 - FunctionTimeTaken1, (FunctionTimeTaken2 - FunctionTimeTaken1) / 1000000);
 
         SearchTree LevenshteinTree = new SearchTree(
                 new LevenshteinData("#", 7.5f)
@@ -155,8 +158,8 @@ public class Main {
             ));
         }
         long FunctionTimeTaken3 = System.nanoTime() - FunctionStartTimer;
-        System.out.printf("GPU Query (Postprocessing): %dns / %dms %n", FunctionTimeTaken3 - FunctionTimeTaken2, (FunctionTimeTaken3 - FunctionTimeTaken2) / 1000000);
-        System.out.printf("GPU Query (Total): %dns / %dms %n", FunctionTimeTaken3, FunctionTimeTaken3 / 1000000);
+        if (TimesGPU) System.out.printf("GPU Query (Postprocessing): %dns / %dms %n", FunctionTimeTaken3 - FunctionTimeTaken2, (FunctionTimeTaken3 - FunctionTimeTaken2) / 1000000);
+        if (TimesGPU) System.out.printf("GPU Query (Total): %dns / %dms %n", FunctionTimeTaken3, FunctionTimeTaken3 / 1000000);
 
         if (PrintGPU) {
             LevenshteinTree.PrintInorder(LevenshteinTree, new int[] {0, 5});
@@ -171,26 +174,31 @@ public class Main {
                 Main.class.getClassLoader().getResourceAsStream("LevenshteinSolver.cl")
         );
 
-        Input = new Scanner(System.in);
-        WordList = LoadWordList("RandomNumberFile.txt");
+        WordList = LoadWordList("10kwordlist.txt");
 
-        while (QueryCPU && QueryGPU) {
-            System.out.println("Enter Search Term: ");
-            String SearchTerm = Input.nextLine();
+        if (Manual) {
+            Input = new Scanner(System.in);
 
-            if (QueryGPU) {
-                if (HeadrGPU) System.out.println("GPU: ");
-                QueryGPULev(SearchTerm);
-                if (HeadrCPU) System.out.println();
-            }
+            while (QueryCPU && QueryGPU) {
+                System.out.println("Enter Search Term: ");
+                String SearchTerm = Input.nextLine();
 
-            if (QueryCPU) {
-                if (HeadrCPU) System.out.println("CPU: ");
-                QueryCPULev(SearchTerm);
-                System.out.println();
+                if (QueryGPU) {
+                    if (HeadrGPU) System.out.println("GPU: ");
+                    QueryGPULev(SearchTerm);
+                    if (HeadrCPU) System.out.println();
+                }
+
+                if (QueryCPU) {
+                    if (HeadrCPU) System.out.println("CPU: ");
+                    QueryCPULev(SearchTerm);
+                    System.out.println();
+                }
             }
         }
-
+        else {
+            Tests.Test1();
+        }
         GPU.Dispose();
     }
 
