@@ -12,10 +12,10 @@ public class Tests {
 
     //Testing the speed of different search term sizes
     //Range: 1, 3, 5, 7, 10, 25, 50, 75, 100, 500, 1000, 2000, 5000, 10000
-    //Repeats: 15?
+    //Repeats: 30?
     public static void Test1() {
         //Warmup
-        Main.QueryGPULev(GenRandString(10));
+        Main.QueryCPULev(GenRandString(10));
 
         int Repeats = 30;
         int[] SearchTermSizes = new int[] {1,3,5,7,10,25,50,75,100,500,1000,2000,5000,10000};
@@ -31,7 +31,7 @@ public class Tests {
             long TotalTime = 0;
             for (String TestSearchTerm : TestSearchTerms) {
                 long IndividualTime = System.nanoTime();
-                Main.QueryGPULev(TestSearchTerm);
+                Main.QueryCPULev(TestSearchTerm);
                 TotalTime += System.nanoTime() - IndividualTime;
             }
 
@@ -40,6 +40,24 @@ public class Tests {
             System.out.printf("Average Time Taken: %dns / %dms %n", (TotalTime / Repeats), (TotalTime / Repeats) / 1000000);
 
         }
+    }
+
+    //Simply run a query for a dataset 30 times
+    public static void Test2() {
+        int Repeats = 30;
+
+        long SuperTotalTime = System.nanoTime();
+        long TotalTime = 0;
+        for (int R = 0; R < Repeats; R++) {
+            String SearchTerm = GenRandString(15);
+
+            long ITime = System.nanoTime();
+            Main.QueryGPULev(SearchTerm);
+            TotalTime += System.nanoTime() - ITime;
+        }
+        System.out.printf("%nResults for current dataset %n");
+        System.out.printf("Overall Time Taken: %dns / %dms %n", System.nanoTime() - SuperTotalTime, (System.nanoTime() - SuperTotalTime) / 1000000);
+        System.out.printf("Average Time Taken: %dns / %dms %n", (TotalTime / Repeats), (TotalTime / Repeats) / 1000000);
     }
 
 }

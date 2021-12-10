@@ -174,7 +174,7 @@ public class Main {
                 Main.class.getClassLoader().getResourceAsStream("LevenshteinSolver.cl")
         );
 
-        WordList = LoadWordList("10kwordlist.txt");
+        WordList = LoadWordList("RL/RandomNumberFileSize=20000.txt");
 
         if (Manual) {
             Input = new Scanner(System.in);
@@ -197,7 +197,7 @@ public class Main {
             }
         }
         else {
-            Tests.Test1();
+            Tests.Test2();
         }
         GPU.Dispose();
     }
